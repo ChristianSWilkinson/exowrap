@@ -1,0 +1,17 @@
+# Exclude tests and notebooks
+tests/
+test_*.py
+.ipynb_checkpoints/
+
+# Exclude local ExoREM debug runs
+exowrap_debug_run/
+
+# Python packaging artifacts
+build/
+dist/
+*.egg-info/
+__pycache__/
+*.py[cod]
+
+# OS generated files (macOS)
+.DS_Store
