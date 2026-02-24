@@ -162,43 +162,44 @@ def compile_exorem(install_dir: Path) -> Path:
         sys.exit(1)
 
 
-def setup_data(exorem_base: Path):
+def setup_data(exorem_base: Path, res: int = 50):
     """
-    Download and extract required K-tables as specified in the README.
+    Download and extract required K-tables for a specific resolution.
 
     Args:
         exorem_base (Path): The root directory of the compiled ExoREM installation.
+        res (int): The resolution of the K-tables to download (e.g., 50, 500).
     """
-    k_table_url = "https://lesia.obspm.fr/exorem/ktables/default/xz/R50.tar.xz"
+    k_table_url = f"https://lesia.obspm.fr/exorem/ktables/default/xz/R{res}.tar.xz"
     k_table_dir = exorem_base / "data" / "k_coefficients_tables"
-    tar_dest = k_table_dir / "R50.tar.xz"
+    tar_dest = k_table_dir / f"R{res}.tar.xz"
+    res_dir = k_table_dir / f"R{res}"
 
-    print(f"📥 Downloading R50 K-tables from {k_table_url}...")
+    if res_dir.exists():
+        print(f"✅ R{res} K-tables already exist at {res_dir}. Skipping download.")
+        return
+
+    print(f"📥 Downloading R{res} K-tables from {k_table_url}...")
     k_table_dir.mkdir(parents=True, exist_ok=True)
 
     try:
         urllib.request.urlretrieve(k_table_url, tar_dest)
-        print("📦 Extracting K-tables...")
+        print("📦 Extracting K-tables... (This may take a moment for high resolutions)")
         subprocess.run(
-            ["tar", "xJvf", "R50.tar.xz"],
+            ["tar", "xJvf", f"R{res}.tar.xz"],
             cwd=k_table_dir,
             capture_output=True,
             check=True
         )
         tar_dest.unlink()  # Clean up the tarball
-        print("✅ K-tables downloaded and extracted.")
+        print(f"✅ R{res} K-tables successfully downloaded and extracted.")
     except Exception as e:
         print(f"⚠️ Failed to download/extract K-tables: {e}")
-        print("You may need to download them manually later.")
+        print(f"Ensure the requested resolution (R{res}) exists on the ExoREM server.")
 
 
 def save_config(make_dir: Path):
-    """
-    Save the backend paths to a JSON configuration file.
-
-    Args:
-        make_dir (Path): The root directory of the compiled ExoREM installation.
-    """
+    """Save the backend paths to a JSON configuration file."""
     exe_path = make_dir / "bin" / "exorem.exe"
     data_path = make_dir / "data"
 
@@ -217,31 +218,38 @@ def save_config(make_dir: Path):
 
 
 def init_backend(args: argparse.Namespace):
-    """
-    Main sequence for the 'init' command.
-
-    Args:
-        args (argparse.Namespace): The parsed command-line arguments.
-    """
+    """Main sequence for the 'init' command."""
     install_dir = Path(args.path).resolve()
 
     print("--- Initializing exowrap backend ---")
     check_dependencies()
     clone_repo(install_dir)
     make_dir = compile_exorem(install_dir)
-    setup_data(make_dir)
+    setup_data(make_dir, res=50) # Always fetch R50 as the default baseline
     save_config(make_dir)
 
 
+def download_tables_cmd(args: argparse.Namespace):
+    """Main sequence for the 'download-tables' command."""
+    if not CONFIG_FILE.exists():
+        print("❌ Backend not initialized! Run 'exowrap init' first.")
+        sys.exit(1)
+        
+    with open(CONFIG_FILE, "r") as f:
+        config = json.load(f)
+        
+    exorem_base = Path(config["EXOREM_BASE_PATH"])
+    setup_data(exorem_base, res=args.res)
+
+
 def main():
-    """
-    Parse arguments and execute the appropriate CLI sub-command.
-    """
+    """Parse arguments and execute the appropriate CLI sub-command."""
     parser = argparse.ArgumentParser(
         description="exowrap CLI: Manage the ExoREM backend."
     )
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
+    # Init command
     init_parser = subparsers.add_parser(
         "init",
         help="Download and compile the ExoREM Fortran code."
@@ -253,10 +261,24 @@ def main():
         help=f"Where to install the ExoREM source (default: {DEFAULT_INSTALL_DIR})"
     )
 
+    # Download Tables command
+    table_parser = subparsers.add_parser(
+        "download-tables",
+        help="Download specific resolution K-tables (e.g., 50, 500, 20000)."
+    )
+    table_parser.add_argument(
+        "--res",
+        type=int,
+        required=True,
+        help="Resolution of the tables to download (e.g., 500)"
+    )
+
     args = parser.parse_args()
 
     if args.command == "init":
         init_backend(args)
+    elif args.command == "download-tables":
+        download_tables_cmd(args)
     else:
         parser.print_help()
 

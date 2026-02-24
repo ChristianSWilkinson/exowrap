@@ -14,29 +14,33 @@ def build_namelist(
     user_updates: dict,
     output_file_path: Path,
     exorem_base_path: Path,
-    run_dir: Path
+    run_dir: Path,
+    resolution: int = 50
 ) -> Path:
     """
     Build and save the Fortran namelist for ExoREM.
 
     Opens the default `example.nml` from the ExoREM repository, applies 
     user-defined parameter overrides, dynamically sets absolute paths for 
-    data and outputs, and writes the final `.nml` file while preserving 
-    the strict sequential block order expected by the Fortran parser.
+    data and outputs (including the specific K-table resolution), and writes 
+    the final `.nml` file while preserving the strict sequential block order 
+    expected by the Fortran parser.
 
     Args:
         user_updates (dict): Nested dictionary of user parameters to override.
         output_file_path (Path): Destination path for the generated .nml file.
         exorem_base_path (Path): Root directory of the ExoREM installation.
         run_dir (Path): Temporary execution directory for the current run.
+        resolution (int, optional): The spectral resolution of the K-tables 
+            to map in the namelist. Defaults to 50.
 
     Returns:
-        Path: The path to the successfully generated namelist file.
+        Path: The absolute path to the successfully generated namelist file.
 
     Raises:
-        FileNotFoundError: If the default ExoREM template cannot be found.
+        FileNotFoundError: If the default ExoREM `example.nml` template 
+            cannot be found in the base directory.
     """
-    # 1. Read the original template from the cloned repository
     template_path = exorem_base_path / "inputs" / "example.nml"
 
     if not template_path.exists():
@@ -45,7 +49,6 @@ def build_namelist(
     # f90nml.read() perfectly preserves the strict sequential order Fortran expects
     nml_obj = f90nml.read(str(template_path))
 
-    # 2. Automatically map the absolute data and input paths
     data_str = str(exorem_base_path / "data") + "/"
     inputs_str = str(exorem_base_path / "inputs") + "/"
     outputs_str = str(run_dir / "outputs") + "/"
@@ -54,7 +57,10 @@ def build_namelist(
     nml_obj["paths"]["path_data"] = data_str
     nml_obj["paths"]["path_cia"] = data_str + "cia/"
     nml_obj["paths"]["path_clouds"] = data_str + "cloud_optical_constants/"
-    nml_obj["paths"]["path_k_coefficients"] = data_str + "k_coefficients_tables/R50/"
+    
+    # Dynamically map the resolution
+    nml_obj["paths"]["path_k_coefficients"] = data_str + f"k_coefficients_tables/R{resolution}/"
+    
     nml_obj["paths"]["path_thermochemical_tables"] = data_str + "thermochemical_tables/"
     nml_obj["paths"]["path_light_source_spectra"] = data_str + "stellar_spectra/"
     nml_obj["paths"]["path_temperature_profile"] = (
@@ -63,18 +69,17 @@ def build_namelist(
     nml_obj["paths"]["path_vmr_profiles"] = inputs_str + "atmospheres/vmr_profiles/"
     nml_obj["paths"]["path_outputs"] = outputs_str
 
-    # 3. Apply the user's specific overrides
+    # Apply the user's specific overrides
     for section, overrides in user_updates.items():
         if section not in nml_obj:
             nml_obj[section] = {}
         for key, val in overrides.items():
             nml_obj[section][key] = val
 
-    # 4. Write to disk
+    # Write to disk
     nml_obj.write(str(output_file_path), force=True)
 
-    # 5. Fortran EOF safeguard
-    # Ensure the file ends with trailing blank lines so the Fortran parser cleanly exits
+    # Fortran EOF safeguard: Ensure the file ends with trailing blank lines
     with open(output_file_path, "a") as f:
         f.write("\n\n")
 

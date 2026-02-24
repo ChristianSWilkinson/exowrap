@@ -38,7 +38,11 @@ class Simulation:
     """
 
     def __init__(
-        self, params: dict, keep_run_files: bool = False, output_dir: str = None
+        self, 
+        params: dict, 
+        keep_run_files: bool = False, 
+        output_dir: str = None,
+        resolution: int = 50
     ):
         """
         Initialize the simulation with user parameters.
@@ -53,6 +57,7 @@ class Simulation:
         self.params = params
         self.keep_run_files = keep_run_files
         self.output_dir = Path(output_dir) if output_dir else None
+        self.resolution = resolution
         
         self.last_stdout = ""
         self.last_stderr = ""
@@ -128,6 +133,24 @@ class Simulation:
                 "sedimentation_parameter": [f_sed, f_sed]
             }
 
+        spec_updates = {}
+        if "wavenumber_min" in self.params:
+            spec_updates["wavenumber_min"] = float(self.params["wavenumber_min"])
+        if "wavenumber_max" in self.params:
+            spec_updates["wavenumber_max"] = float(self.params["wavenumber_max"])
+            
+        # If the user specifies a step, use it. Otherwise, scale it intelligently!
+        if "wavenumber_step" in self.params:
+            spec_updates["wavenumber_step"] = float(self.params["wavenumber_step"])
+        else:
+            # Base step is 200 for R=50. Scale inversely with resolution.
+            # R=50 -> step 200. R=500 -> step 20. R=20000 -> step 0.5.
+            smart_step = 200.0 * (50.0 / self.resolution)
+            spec_updates["wavenumber_step"] = smart_step
+
+        if spec_updates:
+            nml_updates["spectrum_parameters"] = spec_updates
+
         return nml_updates
 
     def _read_hdf5_results(self, h5_file: Path) -> pd.DataFrame:
@@ -183,10 +206,19 @@ class Simulation:
         outputs_dir.mkdir(parents=True, exist_ok=True)
 
         try:
-            # 1. Build the inputs
+            # NEW: Verify the requested K-tables actually exist locally
+            k_table_path = self.data_path / "k_coefficients_tables" / f"R{self.resolution}"
+            if not k_table_path.exists():
+                raise FileNotFoundError(
+                    f"K-tables for Resolution {self.resolution} not found at {k_table_path}.\n"
+                    f"Please run this in your terminal first:\n"
+                    f"  exowrap download-tables --res {self.resolution}"
+                )
+
+            # 1. Build the inputs (pass the resolution!)
             nml_updates = self._map_params_to_namelist()
             nml_path = run_dir / "input.nml"
-            build_namelist(nml_updates, nml_path, self.base_path, run_dir)
+            build_namelist(nml_updates, nml_path, self.base_path, run_dir, self.resolution)
 
             logging.info(f"Generated namelist at {nml_path}")
 
