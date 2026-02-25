@@ -4,7 +4,7 @@
 
 ExoREM is a powerful 1D radiative-convective equilibrium model developed for the simulation of young gas giants and brown dwarfs. However, configuring Fortran namelists, managing absolute paths, and parsing complex HDF5 outputs can be tedious. 
 
-`exowrap` provides a clean Python interface to define planet parameters, automatically handle background configurations and temporary sandboxes, execute the Fortran backend, and return the results as friendly Pandas DataFrames. It also includes a suite of publication-ready plotting tools.
+`exowrap` provides a clean Python interface to define planet parameters, automatically handle background configurations and temporary sandboxes, execute the Fortran backend, and return the results as friendly Pandas DataFrames or fully parsed, object-oriented physical data structures. 
 
 ---
 
@@ -12,9 +12,9 @@ ExoREM is a powerful 1D radiative-convective equilibrium model developed for the
 * **Pythonic Namelist Generation:** Pass a simple Python dictionary; `exowrap` safely maps it to the Fortran namelist while preserving sequential structure.
 * **Isolated Execution:** Runs Fortran in a temporary system sandbox, preventing clutter in your working directory.
 * **Dynamic Resolution Scaling:** Seamlessly switch between K-table resolutions (R50, R500, R20000). The wrapper automatically scales your wavenumber step to match the requested resolution.
-* **Seamless Data Extraction:** Parses the nested ExoREM HDF5 output into a flat, single-row Pandas DataFrame for instant analysis.
+* **Object-Oriented Physics (`ExoremOut`):** Instantly wrap raw HDF5 outputs into clean, unit-aware NumPy arrays (e.g., `exo_data.temperature_profile`, `exo_data.kzz`) without heavy external dependencies.
 * **Parallel Grid Generation:** Generate massive atmospheric grids across multiple CPU cores with built-in HDF5 file-lock bypassing and smart checkpointing.
-* **Built-in Plotting:** Generate beautifully formatted T-P profiles, emission spectra, transmission spectra, and chemical abundance (VMR) plots with one line of code.
+* **Built-in Plotting:** Generate beautifully formatted T-P profiles, emission spectra, transmission spectra, and a comprehensive 4-panel model summary with one line of code.
 
 ---
 
@@ -24,14 +24,14 @@ Because ExoREM relies on a compiled Fortran backend and HDF5, you must install s
 
 **1. Basic Build Tools**
 You will need `git`, `make`, and `tar`.
-* **macOS:** `brew install git make` (or install Xcode Command Line Tools)
-* **Ubuntu/Debian:** `sudo apt install git make build-essential`
+* **macOS:**
+  `brew install git make` (or install Xcode Command Line Tools)
+* **Ubuntu/Debian:**
+  `sudo apt install git make build-essential`
 
 **2. The Compiler & HDF5 (The Conda Route - Recommended)**
 If you are using Anaconda/Miniconda, the native HDF5 wrappers (`h5fc`) are incredibly strict about which compiler they use. **You must install Conda's Fortran compiler**:
-    conda install -c conda-forge fortran-compiler hdf5
-
-*Non-Conda users:* Ensure you have `gfortran` and the HDF5 Fortran bindings installed via your system package manager (e.g., `brew install gcc hdf5` or `sudo apt install gfortran libhdf5-dev libhdf5-fortran-100`).
+  `conda install -c conda-forge fortran-compiler hdf5`
 
 ---
 
@@ -41,132 +41,128 @@ Installing `exowrap` is a multi-step process to ensure the Fortran backend is pr
 
 **Step 1: Install the Python Package**
 Clone the repository and install it in editable mode:
-    git clone git@github.com:ChristianSWilkinson/exowrap.git
-    cd exowrap
-    pip install -e .
+  `git clone git@github.com:ChristianSWilkinson/exowrap.git`
+  `cd exowrap`
+  `pip install -e .`
 
 **Step 2: Initialize the Backend**
 Run the built-in CLI command. This downloads the ExoREM source code, patches it for modern architectures, compiles the Fortran executable, and downloads the baseline R=50 K-tables.
-    exowrap init
+  `exowrap init`
 
 **Step 3: Download High-Resolution Tables (Optional)**
 If you want to run high-resolution models, you can download the corresponding K-tables (e.g., R=500 or R=20000) using the CLI:
-    exowrap download-tables --res 500
+  `exowrap download-tables --res 500`
 
 ---
 
 ## 🚀 Quickstart
 
-Running an atmosphere model is as simple as defining a dictionary of physical parameters. `exowrap` will automatically scale the spectral `wavenumber_step` based on your chosen resolution, but you can override it manually.
+Running an atmosphere model is as simple as defining a dictionary of physical parameters. Once the model runs, you can wrap the results in `ExoremOut` for instantaneous physical analysis and plotting.
 
-    import exowrap
-    import matplotlib.pyplot as plt
-
-    # 1. Define your planet parameters
-    params = {
-        "mass": 1.5,           # Jupiter masses
-        "T_int": 400,          # Internal temperature (K)
-        "T_irr": 1200,         # Irradiation temperature (K)
-        "Met": 0.5,            # Metallicity [Fe/H]
-        "f_sed": 2,            # Sedimentation efficiency
-        "kzz": 8.0,            # Eddy diffusion coefficient (log10)
-        "g_1bar": 15.0,        # Target gravity at 1 bar (m/s^2)
-        
-        # Optional: Override the automatic spectral grid
-        # "wavenumber_min": 1000.0,
-        # "wavenumber_max": 5000.0,
-        # "wavenumber_step": 10.0
-    }
-
-    # 2. Initialize the simulation (Specify your downloaded resolution!)
-    model = exowrap.Simulation(
-        params=params, 
-        resolution=500, 
-        output_dir="./data/hot_jupiters/"
-    )
-
-    # 3. Run the Fortran backend
-    results_df = model.run()
-
-    # 4. View the results!
-    actual_tint = results_df['/outputs/run_quality/actual_internal_temperature'].iloc[0]
-    print(f"Converged Internal Temperature: {actual_tint:.2f} K")
+  import exowrap
+  from exowrap.output import ExoremOut
+  from exowrap.plotting import plot_model_summary
+  import matplotlib.pyplot as plt
+  
+  # 1. Define your planet parameters
+  params = {
+      "mass": 1.5,           # Jupiter masses
+      "T_int": 400,          # Internal temperature (K)
+      "T_irr": 1200,         # Irradiation temperature (K)
+      "Met": 0.5,            # Metallicity [Fe/H]
+      "f_sed": 2,            # Sedimentation efficiency
+      "kzz": 8.0,            # Eddy diffusion coefficient (log10)
+      "g_1bar": 15.0,        # Target gravity at 1 bar (m/s^2)
+  }
+  
+  # 2. Initialize and run the simulation
+  model = exowrap.Simulation(params=params, resolution=500)
+  results_df = model.run()
+  
+  # 3. Wrap the data for clean, object-oriented access!
+  exo_data = ExoremOut(results_df)
+  print(f"Converged Internal Temperature: {exo_data.t_int:.2f} K")
+  
+  # 4. View the comprehensive results
+  fig, axes = plot_model_summary(exo_data)
+  plt.show()
 
 ---
 
 ## 🌐 Parallel Grid Generation
 
-Because `exowrap` creates completely isolated temporary directories for every simulation and natively bypasses strict HDF5 read-locks, it is inherently thread-safe and perfect for high-performance computing.
+`exowrap` is inherently thread-safe and perfect for high-performance computing. The repository includes a ready-to-use grid generation script (`scripts/run_grid.py`) powered by Python's `ProcessPoolExecutor`. 
 
-The repository includes a ready-to-use grid generation script (`scripts/run_grid.py`) powered by Python's `ProcessPoolExecutor`. 
+**Running the grid from your terminal:**
+  `python scripts/run_grid.py`
 
-**Key Features of the Grid Script:**
-* **Parallel Execution:** Blasts through planetary parameter grids using all available CPU cores.
-* **Smart Checkpointing:** Saves a hashed `.pkl` file the moment a planet converges. If your script is interrupted, restarting it will instantly load the existing data instead of re-running Fortran.
-* **Master Compilation:** Compiles all successful runs into a single `master_grid_results.pkl` file for instant cross-comparison.
+**Analyzing the grid later in Python:**
+  import pandas as pd
+  from exowrap.output import ExoremOut
+  
+  # Instantly load hundreds of models into memory
+  master_df = pd.read_pickle("./data/grid/master_grid_results.pkl")
+  
+  # Filter the DataFrame using standard Pandas logic 
+  hot_planets_df = master_df[master_df['input_param_T_int'] >= 500]
+  
+  # Grab the first hot planet and analyze it
+  first_hot_planet = ExoremOut(hot_planets_df.iloc[[0]])
 
-**Running the grid:**
-    python scripts/run_grid.py
+---
 
-**Analyzing the grid later:**
-    import pandas as pd
-    
-    # Instantly load hundreds of models into memory
-    master_df = pd.read_pickle("./data/grid/master_grid_results.pkl")
-    
-    # Filter the DataFrame using standard Pandas logic to plot exactly what you want
-    hot_planets = master_df[master_df['input_param_T_int'] >= 500]
+## 🗄️ Accessing Physical Data (`ExoremOut`)
+
+The `ExoremOut` class replaces the need to remember long, convoluted HDF5 string paths. Simply pass your results DataFrame into it, and access pure NumPy arrays representing the physics of the atmosphere. 
+
+  exo_data = ExoremOut(results_df)
+  
+  # Access scalar convergence metrics
+  chi_sq = exo_data.chi2_retrieval
+  cloud_frac = exo_data.cloud_cover
+  
+  # Access 1D vertical atmospheric profiles
+  pressures_pa = exo_data.pressure_profile
+  temperatures_k = exo_data.temperature_profile
+  gravity = exo_data.gravity
+  kzz = exo_data.kzz
+  
+  # Access spectral data (automatically converted from wavenumber to wavelength)
+  wavelengths = exo_data.wavelength
+  total_emission = exo_data.emission_spectral_radiosity
+  transit_depth = exo_data.transmission
+  
+  # Access specific molecular abundances (VMR) and contributions
+  water_vmr = exo_data.vmr_absorbers["H2O"]
+  methane_emission = exo_data.emission_species["CH4"]
 
 ---
 
 ## 📊 Plotting Suite
 
-`exowrap` comes with a built-in plotting module tailored for exoplanet science. Because the plotting functions accept an optional `ax` parameter, you can easily overlay multiple models (like comparing R=50 to R=500, or a cold vs hot planet) on the same canvas.
+The plotting suite in `exowrap.plotting` is entirely backward compatible. It accepts *both* raw Pandas DataFrames and wrapped `ExoremOut` objects. Because the plotting functions accept an optional `ax` parameter, you can easily overlay multiple models on the same canvas.
 
 ### Comparing Resolutions (Emission Spectrum)
-    fig, ax = plt.subplots(figsize=(12, 5))
+  from exowrap.plotting import plot_emission_spectrum
+  
+  fig, ax = plt.subplots(figsize=(12, 5))
+  
+  # Plot baseline (R=50)
+  plot_emission_spectrum(results_r50, ax=ax, color='red', lw=2)
+  
+  # Overlay high-resolution model (R=500)
+  plot_emission_spectrum(results_r500, ax=ax, color='black', lw=1.5)
+  
+  ax.set_xlim(0.5, 15) # Zoom in on JWST wavelengths
+  ax.legend(['R=50', 'R=500'])
+  plt.show()
 
-    # Plot baseline
-    exowrap.plot_emission_spectrum(results_r50, ax=ax, color='red', lw=2)
-
-    # Overlay high-resolution model
-    exowrap.plot_emission_spectrum(results_r500, ax=ax, color='black', lw=1.5)
-
-    ax.set_xlim(0.5, 15) # Zoom in on JWST wavelengths
-    ax.legend(['R=50', 'R=500'])
-    plt.show()
-
-### Transmission (Transit) Spectrum
-Visualize the effective radius/transit depth of the planet. Pass a list to the `contributions` argument to see which molecules are adding opacity.
-    ax = exowrap.plot_transmission_spectrum(results_df, contributions=['H2O', 'CH4'])
-    plt.show()
-
-### Chemical Abundances (VMR)
-Plot the Volume Mixing Ratios of various species as a function of pressure depth.
-    ax = exowrap.plot_vmr_profile(results_df, molecules=['H2O', 'CH4', 'CO', 'NH3'])
-    plt.show()
-
-### Temperature-Pressure (T-P) Profile
-    ax = exowrap.plot_tp_profile(results_df, title="Hot Jupiter T-P Profile")
-    plt.show()
-
----
-
-## 🗄️ Accessing Raw Data
-
-The `model.run()` command flattens the entire ExoREM HDF5 output tree into a single-row Pandas DataFrame. Every parameter, array, and convergence metric is stored using its absolute HDF5 path as the column name.
-
-**Examples of extracting data:**
-    # Extract scalar values
-    chi_squared = results_df['/outputs/run_quality/chi2_retrieval'].iloc[0]
-    target_mass = results_df['/model_parameters/target/mass'].iloc[0]
-
-    # Extract 1D atmospheric arrays
-    pressures_pa = results_df['/outputs/layers/pressure'].iloc[0]
-    temperatures_k = results_df['/outputs/layers/temperature'].iloc[0]
-
-    # Extract specific molecular abundances
-    water_vmr = results_df['/outputs/layers/volume_mixing_ratios/absorbers/H2O'].iloc[0]
+### Transmission Spectrum with Contributions
+Visualize the transit depth of the planet, revealing which molecules are driving the opacity.
+  from exowrap.plotting import plot_transmission_spectrum
+  
+  ax = plot_transmission_spectrum(exo_data, contributions=['H2O', 'CH4'])
+  plt.show()
 
 ---
 
@@ -175,7 +171,7 @@ The `model.run()` command flattens the entire ExoREM HDF5 output tree into a sin
 If the Fortran model fails to converge, or if you pass invalid parameters, `exowrap` will catch the failure and raise a `RuntimeError` containing the exact `STDOUT` and `STDERR` from the Fortran executable. 
 
 If you want to manually inspect the Fortran inputs, outputs, or namelist files, initialize the model with `keep_run_files=True`:
-    model = exowrap.Simulation(params=params, keep_run_files=True)
-    results_df = model.run()
+  model = exowrap.Simulation(params=params, keep_run_files=True)
+  results_df = model.run()
 
 This will bypass the temporary system sandbox and dump all raw Fortran execution files into a local `./exowrap_debug_run` directory for manual inspection.
