@@ -227,11 +227,18 @@ class Simulation:
             cmd = ["./exorem.exe", str(nml_path)]
 
             logging.info(f"Running Fortran backend from {bin_dir}...")
+            
+            # --- NEW: Fix for parallel HDF5 reading ---
+            # Disable strict HDF5 file locking so multiple cores can read K-tables safely
+            run_env = os.environ.copy()
+            run_env["HDF5_USE_FILE_LOCKING"] = "FALSE"
+            
             result = subprocess.run(
                 cmd,
                 cwd=bin_dir,
                 capture_output=True,
-                text=True
+                text=True,
+                env=run_env
             )
 
             # Save the raw terminal output directly to the Python object
