@@ -13,8 +13,8 @@ ExoREM is a powerful 1D radiative-convective equilibrium model developed for the
 * **Isolated Execution:** Runs Fortran in a temporary system sandbox, preventing clutter in your working directory.
 * **Dynamic Resolution Scaling:** Seamlessly switch between K-table resolutions (R50, R500, R20000). The wrapper automatically scales your wavenumber step to match the requested resolution.
 * **Seamless Data Extraction:** Parses the nested ExoREM HDF5 output into a flat, single-row Pandas DataFrame for instant analysis.
+* **Parallel Grid Generation:** Generate massive atmospheric grids across multiple CPU cores with built-in HDF5 file-lock bypassing and smart checkpointing.
 * **Built-in Plotting:** Generate beautifully formatted T-P profiles, emission spectra, transmission spectra, and chemical abundance (VMR) plots with one line of code.
-* **Smart Debugging:** Catch Fortran convergence failures directly in your Jupyter Notebook with formatted `STDOUT`/`STDERR` logs.
 
 ---
 
@@ -94,9 +94,34 @@ Running an atmosphere model is as simple as defining a dictionary of physical pa
 
 ---
 
+## 🌐 Parallel Grid Generation
+
+Because `exowrap` creates completely isolated temporary directories for every simulation and natively bypasses strict HDF5 read-locks, it is inherently thread-safe and perfect for high-performance computing.
+
+The repository includes a ready-to-use grid generation script (`scripts/run_grid.py`) powered by Python's `ProcessPoolExecutor`. 
+
+**Key Features of the Grid Script:**
+* **Parallel Execution:** Blasts through planetary parameter grids using all available CPU cores.
+* **Smart Checkpointing:** Saves a hashed `.pkl` file the moment a planet converges. If your script is interrupted, restarting it will instantly load the existing data instead of re-running Fortran.
+* **Master Compilation:** Compiles all successful runs into a single `master_grid_results.pkl` file for instant cross-comparison.
+
+**Running the grid:**
+    python scripts/run_grid.py
+
+**Analyzing the grid later:**
+    import pandas as pd
+    
+    # Instantly load hundreds of models into memory
+    master_df = pd.read_pickle("./data/grid/master_grid_results.pkl")
+    
+    # Filter the DataFrame using standard Pandas logic to plot exactly what you want
+    hot_planets = master_df[master_df['input_param_T_int'] >= 500]
+
+---
+
 ## 📊 Plotting Suite
 
-`exowrap` comes with a built-in plotting module tailored for exoplanet science. Because the plotting functions accept an optional `ax` parameter, you can easily overlay multiple models (like comparing R=50 to R=500) on the same canvas.
+`exowrap` comes with a built-in plotting module tailored for exoplanet science. Because the plotting functions accept an optional `ax` parameter, you can easily overlay multiple models (like comparing R=50 to R=500, or a cold vs hot planet) on the same canvas.
 
 ### Comparing Resolutions (Emission Spectrum)
     fig, ax = plt.subplots(figsize=(12, 5))
