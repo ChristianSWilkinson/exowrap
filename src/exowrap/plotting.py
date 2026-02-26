@@ -327,6 +327,7 @@ def plot_model_summary(results_df: Union[pd.DataFrame, ExoremOut]):
     ax_flux.plot(x[idx], exo.flux_flambda[idx], lw=1.8, color="tab:blue")
     ax_flux.set_xlabel(r"$\lambda\ \mathrm{(\mu m)}$")
     ax_flux.set_yscale('log')
+    ax_flux.set_xscale('log')
     ax_flux.set_ylabel(r"$F_{\lambda}\ \mathrm{(W\ m^{-2}\ \mu m^{-1})}$")
     ax_flux.set_title("Stellar Flux")
     ax_flux.grid(True, alpha=0.3)
@@ -336,6 +337,7 @@ def plot_model_summary(results_df: Union[pd.DataFrame, ExoremOut]):
     ax_tr.set_xlabel(r"$\lambda\ \mathrm{(\mu m)}$")
     ax_tr.set_ylabel(r"$D_{\mathrm{tr}}\ \mathrm{(-)}$")
     ax_tr.set_title("Transmission")
+    ax_tr.set_xscale('log')
     ax_tr.grid(True, alpha=0.3)
 
     fig.suptitle("ExoREM Model Summary", y=0.995, fontsize=16, fontweight='bold')
