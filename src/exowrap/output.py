@@ -274,6 +274,16 @@ class ExoremOut:
         return self.flux_wavenumber_density / C_CM_S
 
     @property
+    def flux_jy(self) -> np.ndarray:
+        """
+        np.ndarray: Flux density per frequency F_nu in Janskys (Jy).
+        
+        Calculated internally using the standard astronomical conversion:
+        1 Jy = 10^-26 W m^-2 Hz^-1.
+        """
+        return self.flux_fnu * 1e26
+
+    @property
     def flux_flambda(self) -> np.ndarray:
         """
         np.ndarray: Flux density per wavelength F_lambda (W m^-2 um^-1).
