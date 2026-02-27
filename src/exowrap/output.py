@@ -10,7 +10,7 @@ from typing import Dict, List, Literal
 import numpy as np
 import pandas as pd
 
-from .constants import C_CM_S
+from .constants import C_CM_S, R_GAS
 
 
 class ExoremOut:
@@ -181,6 +181,19 @@ class ExoremOut:
     def temperature_profile(self) -> np.ndarray:
         """np.ndarray: Temperature profile evaluated at layer centers (K)."""
         return np.asarray(self._get("/outputs/layers/temperature"))
+    
+    @property
+    def density_profile(self) -> np.ndarray:
+        """
+        np.ndarray: Mass density profile in atmospheric layers (kg/m^3).
+        
+        Calculated internally using the ideal gas law: rho = (P * M) / (R * T).
+        """
+        p = self.pressure_profile
+        m = self.mean_molar_mass
+        t = self.temperature_profile
+        
+        return (p * m) / (R_GAS * t)
 
     @property
     def pressure_levels(self) -> np.ndarray:
