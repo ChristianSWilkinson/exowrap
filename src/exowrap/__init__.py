@@ -9,7 +9,7 @@ from .plotting import (
     plot_model_summary
 )
 from .output import ExoremOut
-
+from .tools import upgrade_resolution
 __all__ = [
     "Simulation", 
     "plot_tp_profile", 
@@ -17,5 +17,6 @@ __all__ = [
     "plot_transmission_spectrum", 
     "plot_vmr_profile",
     "plot_model_summary",
-    "ExoremOut"
+    "ExoremOut",
+    "upgrade_resolution"
 ]
