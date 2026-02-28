@@ -21,6 +21,7 @@ __all__ = [
     "plot_model_summary",
     "ExoremOut",
     "upgrade_resolution",
+    "load_exorem_h5",
     "compute_photometry",
     "get_svo_filter",
     "search_svo_filters"

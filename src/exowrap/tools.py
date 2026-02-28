@@ -85,3 +85,28 @@ def upgrade_resolution(
         
     print("🎉 High-resolution upgrade complete!")
     return new_df
+
+def load_exorem_h5(filepath: str) -> pd.DataFrame:
+    """
+    Reads a raw ExoREM .h5 output file and flattens it into the 
+    single-row Pandas DataFrame expected by exowrap.
+    """
+    data_dict = {}
+    
+    with h5py.File(filepath, 'r') as f:
+        # A recursive function to visit every single group/dataset in the file
+        def visitor(name, node):
+            if isinstance(node, h5py.Dataset):
+                # Extract the raw data array or scalar
+                val = node[()]
+                
+                # HDF5 sometimes stores strings as byte objects; we decode them
+                if isinstance(val, bytes):
+                    val = val.decode('utf-8')
+                    
+                # Store in our dictionary with the leading '/' to match our ExoremOut paths
+                data_dict['/' + name] = [val]
+                
+        f.visititems(visitor)
+        
+    return pd.DataFrame(data_dict)
