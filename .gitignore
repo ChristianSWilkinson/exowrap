@@ -20,3 +20,6 @@ __pycache__/
 # Data files
 *.pkl
 *.h5
+
+# Temp codes 
+make_readme.ipynb
