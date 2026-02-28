@@ -19,7 +19,7 @@ def upgrade_resolution(
     results: Union[pd.DataFrame, ExoremOut],
     base_params: Dict[str, Any],
     target_resolution: int = 500,
-    output_dir: str = "./data/high_res_spectra"
+    output_dir: str = "../data/high_res_spectra"
 ) -> pd.DataFrame:
     """
     Takes a converged low-resolution model and instantly generates a 

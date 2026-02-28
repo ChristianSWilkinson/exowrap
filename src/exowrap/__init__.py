@@ -10,6 +10,8 @@ from .plotting import (
 )
 from .output import ExoremOut
 from .tools import upgrade_resolution
+from .photometry import compute_photometry, get_svo_filter # <-- Added
+
 __all__ = [
     "Simulation", 
     "plot_tp_profile", 
@@ -18,5 +20,8 @@ __all__ = [
     "plot_vmr_profile",
     "plot_model_summary",
     "ExoremOut",
-    "upgrade_resolution"
+    "upgrade_resolution",
+    "compute_photometry",
+    "get_svo_filter",
+    "search_svo_filters"
 ]

@@ -329,7 +329,7 @@ def plot_model_summary(results_df: Union[pd.DataFrame, ExoremOut]):
     ax_flux.set_yscale('log')
     ax_flux.set_xscale('log')
     ax_flux.set_ylabel(r"$F_{\lambda}\ \mathrm{(W\ m^{-2}\ \mu m^{-1})}$")
-    ax_flux.set_title("Stellar Flux")
+    ax_flux.set_title("Emission Flux")
     ax_flux.grid(True, alpha=0.3)
 
     # Panel 4: Transmission

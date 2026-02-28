@@ -1,5 +1,6 @@
 # Exclude tests and notebooks
 tests/
+data/
 test_*.py
 .ipynb_checkpoints/
 
