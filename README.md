@@ -38,9 +38,19 @@ sudo apt install git make build-essential
 ```
 
 **2. The Compiler & HDF5 (The Conda Route - Recommended)**
-If you are using Anaconda/Miniconda, the native HDF5 wrappers (`h5fc`) are incredibly strict about which compiler they use. **You must install Conda's Fortran compiler**:
+If you are using Anaconda/Miniconda, the native HDF5 wrappers (`h5fc`) are incredibly strict about which compiler they use. **You must install Conda's Fortran compiler**.
+
+*For Linux, Windows, or Intel Macs:*
 ```bash
-conda install -c conda-forge fortran-compiler hdf5
+conda create -n exowrap_env -c conda-forge fortran-compiler hdf5 python=3.10
+conda activate exowrap_env
+```
+
+*For Apple Silicon Macs (M1/M2/M3), you must force the ARM64 architecture:*
+```bash
+CONDA_SUBDIR=osx-arm64 conda create -n exowrap_env -c conda-forge fortran-compiler hdf5 python=3.10
+conda activate exowrap_env
+conda config --env --set subdir osx-arm64
 ```
 
 ---

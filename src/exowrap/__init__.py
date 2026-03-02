@@ -10,7 +10,7 @@ from .plotting import (
 )
 from .output import ExoremOut
 from .tools import upgrade_resolution
-from .photometry import compute_photometry, get_svo_filter # <-- Added
+from .photometry import compute_photometry, get_svo_filter 
 
 __all__ = [
     "Simulation", 
