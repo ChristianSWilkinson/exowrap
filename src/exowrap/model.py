@@ -151,6 +151,23 @@ class Simulation:
         if spec_updates:
             nml_updates["spectrum_parameters"] = spec_updates
 
+        if spec_updates:
+            nml_updates["spectrum_parameters"] = spec_updates
+
+        # ==========================================
+        # Dynamic Nested Dictionary Passthrough
+        # ==========================================
+        # If the user passed explicit nested blocks (like {'paths': {...}}), 
+        # merge them directly into the nml_updates so they reach the namelist!
+        for key, value in self.params.items():
+            if isinstance(value, dict):
+                if key not in nml_updates:
+                    nml_updates[key] = {}
+                # .update() merges the dicts so we don't accidentally erase 
+                # other paths/parameters mapped earlier!
+                nml_updates[key].update(value)
+        # ==========================================
+
         return nml_updates
 
     def _read_hdf5_results(self, h5_file: Path) -> pd.DataFrame:
