@@ -19,7 +19,7 @@ def upgrade_resolution(
     results: Union[pd.DataFrame, ExoremOut],
     base_params: Dict[str, Any],
     target_resolution: int = 500,
-    output_dir: str = "../data/high_res_spectra"
+    output_dir: str = "./data/high_res_spectra"
 ) -> pd.DataFrame:
     """
     Takes a converged low-resolution model and instantly generates a 
@@ -46,26 +46,34 @@ def upgrade_resolution(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
     
-    # 2. Extract the converged arrays
+    # 2. Extract the converged arrays (Pa and K)
     p_converged = exo_data.pressure_profile
     t_converged = exo_data.temperature_profile
     
-    # 3. Save the profile to a temporary text file for Fortran to read
-    # (ExoREM typically expects two columns: Pressure, Temperature)
+    # 3. Save the profile with the strict headers ExoREM expects
     pt_file_path = out_path / "locked_pt_profile.dat"
     np.savetxt(
         pt_file_path, 
         np.column_stack((p_converged, t_converged)), 
-        fmt="%.6e"
+        fmt="%.6e",
+        header="pressure temperature\nPa K",
+        comments="" 
     )
     
     # 4. Modify the parameters for a 0-iteration forward pass
     high_res_params = base_params.copy()
     
-    # NOTE: You may need to adjust these two exact dictionary keys to match 
-    # whatever your specific ExoREM Fortran namelist expects!
-    high_res_params["max_iter"] = 0               # Force zero convective iterations
-    high_res_params["file_t_p"] = str(pt_file_path.absolute()) # Feed the locked profile
+    # Target the exact Fortran namelist block for retrieval
+    if "retrieval_parameters" not in high_res_params:
+        high_res_params["retrieval_parameters"] = {}
+        
+    high_res_params["retrieval_parameters"]["n_iterations"] = 0
+    high_res_params["retrieval_parameters"]["temperature_profile_file"] = str(pt_file_path.absolute())
+    
+    # Prevent Fortran from prepending its default directory to our absolute path
+    if "paths" not in high_res_params:
+        high_res_params["paths"] = {}
+    high_res_params["paths"]["path_temperature_profile"] = ""
     
     print(f"💾 Locked P-T profile saved to: {pt_file_path}")
     print("⚡ Executing 0-iteration forward pass...")
