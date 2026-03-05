@@ -283,8 +283,8 @@ class ExoremOut:
 
     @property
     def flux_fnu(self) -> np.ndarray:
-        """np.ndarray: Flux density per frequency F_nu (W m^-2 Hz^-1)."""
-        return self.flux_wavenumber_density / C_CM_S
+        """np.ndarray: Emission flux density per frequency F_nu (W m^-2 Hz^-1)."""
+        return self.emission_spectral_radiosity / C_CM_S
 
     @property
     def flux_jy(self) -> np.ndarray:
@@ -306,8 +306,9 @@ class ExoremOut:
         """
         wl = self.wavelength
         valid = wl > 0
-        flam = np.zeros_like(self.flux_wavenumber_density)
-        flam[valid] = self.flux_wavenumber_density[valid] * (10000.0 / (wl[valid] ** 2))
+        
+        flam = np.zeros_like(self.emission_spectral_radiosity)
+        flam[valid] = self.emission_spectral_radiosity[valid] * (10000.0 / (wl[valid] ** 2))
         return flam
 
     @property
