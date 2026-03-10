@@ -106,14 +106,14 @@ def compute_photometry(
             "does not overlap with the ExoREM spectral range."
         )
 
-    eff_wav = np.trapz(interp_trans * exo_wl, exo_wl) / np.trapz(interp_trans, exo_wl)
+    eff_wav = np.trapezoid(interp_trans * exo_wl, exo_wl) / np.trapezoid(interp_trans, exo_wl)
 
     if photon_counting:
-        numerator = np.trapz(exo_flux * interp_trans * exo_wl, exo_wl)
-        denominator = np.trapz(interp_trans * exo_wl, exo_wl)
+        numerator = np.trapezoid(exo_flux * interp_trans * exo_wl, exo_wl)
+        denominator = np.trapezoid(interp_trans * exo_wl, exo_wl)
     else:
-        numerator = np.trapz(exo_flux * interp_trans, exo_wl)
-        denominator = np.trapz(interp_trans, exo_wl)
+        numerator = np.trapezoid(exo_flux * interp_trans, exo_wl)
+        denominator = np.trapezoid(interp_trans, exo_wl)
 
     phot_flux_flambda = numerator / denominator
 

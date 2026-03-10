@@ -10,6 +10,7 @@ from typing import Dict, Any, Union
 
 import numpy as np
 import pandas as pd
+import h5py
 
 from .model import Simulation
 from .output import ExoremOut

@@ -10,13 +10,13 @@ readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "Your Name", email = "your.email@example.com"}
+    {name = "Christian Wilkinson", email = "christian.s.wilkinson@gmail.com"}
 ]
 dependencies = [
     "f90nml>=1.4.3",
     "h5py>=3.0.0",
     "pandas>=1.0.0",
-    "numpy>=1.20.0",
+    "numpy>=2.2.6",
     "matplotlib>=3.3.0"
 ]
 
