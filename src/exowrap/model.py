@@ -129,10 +129,12 @@ class Simulation:
         nml_updates["atmosphere_parameters"] = atm_updates
 
         # --- NEW: Cloud species array expansion ---
-        # Fetch f_sed from params, fallback to 2.0 if not provided
-        f_sed = float(self.params.get("f_sed", 2.0))
+        # Fetch f_sed from params, fallback to 6.0 if not provided
+        f_sed = float(self.params.get("f_sed", 6.0))
+        cloud_frac = float(self.params.get("cloud_fraction", 1.0))
         
         nml_updates["clouds_parameters"] = {
+            "cloud_fraction": cloud_frac,
             "cloud_names": ['Fe', 'Mg2SiO4', 'KCl', 'Na2S', 'H2O'],
             "cloud_particle_density": [7874.0, 3670.0, 2000.0, 1860.0, 917.0],
             "sedimentation_parameter": [f_sed] * 5,
