@@ -110,7 +110,7 @@ class ExoremOut:
         return float(self._get("/model_parameters/clouds/fraction"))
 
     def particle_density(
-        self, specie: Literal["cloud1", "cloud2", "cloud3", "cloud4"] = "cloud1"
+        self, specie: Literal["cloud1", "cloud2", "cloud3", "cloud4", "cloud5"] = "cloud1"
     ) -> float:
         """
         Retrieves the cloud particle density for a specific cloud species.

@@ -91,9 +91,6 @@ class Simulation:
         """
         Map simple user inputs to the nested dictionary structure 
         expected by the Fortran Namelist.
-
-        Returns:
-            dict: The parsed namelist updates.
         """
         nml_updates = {"output_files": {"output_files_suffix": "exowrap_run"}}
 
@@ -120,6 +117,10 @@ class Simulation:
             }
 
         atm_updates = {}
+        
+        # --- NEW: Explicitly declare 5 clouds to Fortran ---
+        atm_updates["n_clouds"] = 5
+        
         if "Met" in self.params:
             atm_updates["metallicity"] = 10 ** float(self.params["Met"])
         if "kzz" in self.params:
@@ -127,11 +128,21 @@ class Simulation:
 
         nml_updates["atmosphere_parameters"] = atm_updates
 
-        if "f_sed" in self.params:
-            f_sed = float(self.params["f_sed"])
-            nml_updates["clouds_parameters"] = {
-                "sedimentation_parameter": [f_sed, f_sed]
-            }
+        # --- NEW: Cloud species array expansion ---
+        # Fetch f_sed from params, fallback to 2.0 if not provided
+        f_sed = float(self.params.get("f_sed", 2.0))
+        
+        nml_updates["clouds_parameters"] = {
+            "cloud_names": ['Fe', 'Mg2SiO4', 'KCl', 'Na2S', 'H2O'],
+            "cloud_particle_density": [7874.0, 3670.0, 2000.0, 1860.0, 917.0],
+            "sedimentation_parameter": [f_sed] * 5,
+            
+            # Using defaults pulled from example.nml and padded to length 5
+            "cloud_particle_radius": [10e-6] * 5,
+            "supersaturation_parameter": [0.003] * 5,
+            "sticking_efficiency": [1.0] * 5,
+            "reference_wavenumber": [10000.0] * 5
+        }
 
         spec_updates = {}
         if "wavenumber_min" in self.params:
@@ -139,34 +150,21 @@ class Simulation:
         if "wavenumber_max" in self.params:
             spec_updates["wavenumber_max"] = float(self.params["wavenumber_max"])
             
-        # If the user specifies a step, use it. Otherwise, scale it intelligently!
         if "wavenumber_step" in self.params:
             spec_updates["wavenumber_step"] = float(self.params["wavenumber_step"])
         else:
-            # Base step is 200 for R=50. Scale inversely with resolution.
-            # R=50 -> step 200. R=500 -> step 20. R=20000 -> step 0.5.
             smart_step = 200.0 * (50.0 / self.resolution)
             spec_updates["wavenumber_step"] = smart_step
 
         if spec_updates:
             nml_updates["spectrum_parameters"] = spec_updates
 
-        if spec_updates:
-            nml_updates["spectrum_parameters"] = spec_updates
-
-        # ==========================================
         # Dynamic Nested Dictionary Passthrough
-        # ==========================================
-        # If the user passed explicit nested blocks (like {'paths': {...}}), 
-        # merge them directly into the nml_updates so they reach the namelist!
         for key, value in self.params.items():
             if isinstance(value, dict):
                 if key not in nml_updates:
                     nml_updates[key] = {}
-                # .update() merges the dicts so we don't accidentally erase 
-                # other paths/parameters mapped earlier!
                 nml_updates[key].update(value)
-        # ==========================================
 
         return nml_updates
 
