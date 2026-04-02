@@ -158,13 +158,13 @@ class ExoremOut:
         wn_valid = wn[valid]
         rad_valid = rad[valid]
         
-        # Sort by wavenumber to ensure np.trapz integrates correctly
+        # Sort by wavenumber to ensure np.trapezoid integrates correctly
         sort_idx = np.argsort(wn_valid)
         wn_sorted = wn_valid[sort_idx]
         rad_sorted = rad_valid[sort_idx]
         
         # Integrate spectral radiosity (W m^-2 (cm^-1)^-1) over wavenumber (cm^-1)
-        total_flux = np.trapz(rad_sorted, wn_sorted)
+        total_flux = np.trapezoid(rad_sorted, wn_sorted)
         
         # Apply Stefan-Boltzmann Law: F = sigma * T^4
         sigma_sb = 5.670374419e-8
