@@ -139,9 +139,38 @@ class ExoremOut:
         return float(self._get("/outputs/run_quality/actual_internal_temperature"))
 
     @property
-    def t_eff(self) -> float:
-        """float: The effective temperature from the model light source in Kelvin."""
+    def stellar_t_eff(self) -> float:
+        """float: The effective temperature from the model light source (star) in Kelvin."""
         return float(self._get("/model_parameters/light_source/effective_temperature"))
+
+    @property
+    def t_eff(self) -> float:
+        """
+        float: The true planetary effective temperature in Kelvin.
+        Calculated by integrating the outgoing emission spectral radiosity 
+        over the wavenumber grid and applying the Stefan-Boltzmann law.
+        """
+        wn = self.wavenumber
+        rad = self.emission_spectral_radiosity
+        
+        # Ensure we only integrate valid positive wavenumbers
+        valid = wn > 0
+        wn_valid = wn[valid]
+        rad_valid = rad[valid]
+        
+        # Sort by wavenumber to ensure np.trapz integrates correctly
+        sort_idx = np.argsort(wn_valid)
+        wn_sorted = wn_valid[sort_idx]
+        rad_sorted = rad_valid[sort_idx]
+        
+        # Integrate spectral radiosity (W m^-2 (cm^-1)^-1) over wavenumber (cm^-1)
+        total_flux = np.trapz(rad_sorted, wn_sorted)
+        
+        # Apply Stefan-Boltzmann Law: F = sigma * T^4
+        sigma_sb = 5.670374419e-8
+        if total_flux > 0:
+            return float((total_flux / sigma_sb) ** 0.25)
+        return 0.0
 
     @property
     def t_irr(self) -> float:
