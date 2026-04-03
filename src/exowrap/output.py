@@ -174,8 +174,16 @@ class ExoremOut:
 
     @property
     def t_irr(self) -> float:
-        """float: The irradiation temperature in Kelvin."""
-        return float(self._get("irradiation_temperature"))
+        """
+        float: The exact irradiation temperature in Kelvin.
+        This value is injected directly by model.py to preserve the 
+        exact dial value, bypassing Fortran's generic spectral scaling.
+        """
+        try:
+            return float(self._get("irradiation_temperature"))
+        except Exception:
+            # Safe fallback if loaded from an older, un-injected HDF5 file
+            return 0.0
 
     @property
     def chi2_retrieval(self) -> float:

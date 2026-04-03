@@ -115,6 +115,8 @@ class Simulation:
                 "use_irradiation": True,
                 "light_source_irradiation": irradiation_flux,
             }
+        else :
+            t_irr = 0.0
 
         atm_updates = {}
         
@@ -295,6 +297,7 @@ class Simulation:
 
             logging.info(f"Parsing results from {expected_output_file}...")
             results_df = self._read_hdf5_results(expected_output_file)
+            results_df['irradiation_temperature'] = float(self.params.get('T_irr', 0.0))
 
             # 4. Save the HDF5 file permanently if the user requested it
             if self.output_dir:
