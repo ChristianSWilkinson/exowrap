@@ -170,6 +170,31 @@ class Simulation:
                     nml_updates[key] = {}
                 nml_updates[key].update(value)
 
+        # --- NEW: Explicitly map convergence and retrieval parameters ---
+        retrieval_keys = [
+            "retrieval_level_bottom", "retrieval_level_top",
+            "retrieval_flux_error_bottom", "retrieval_flux_error_top",
+            "n_iterations", "n_non_adiabatic_iterations",
+            "chemistry_iteration_interval", "cloud_iteration_interval",
+            "n_burn_iterations", "retrieval_tolerance",
+            "smoothing_bottom", "smoothing_top", "weight_apriori"
+        ]
+        
+        retrieval_updates = {}
+        for key in retrieval_keys:
+            if key in self.params:
+                # Cast numeric types properly
+                val = self.params[key]
+                if isinstance(val, bool):
+                    retrieval_updates[key] = val
+                elif isinstance(val, int) or str(val).isdigit():
+                    retrieval_updates[key] = int(val)
+                else:
+                    retrieval_updates[key] = float(val)
+
+        if retrieval_updates:
+            nml_updates["retrieval_parameters"] = retrieval_updates
+
         return nml_updates
 
     def _read_hdf5_results(self, h5_file: Path) -> pd.DataFrame:
