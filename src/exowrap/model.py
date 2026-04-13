@@ -162,7 +162,7 @@ class Simulation:
 
         if spec_updates:
             nml_updates["spectrum_parameters"] = spec_updates
-
+    
         # Dynamic Nested Dictionary Passthrough
         for key, value in self.params.items():
             if isinstance(value, dict):
@@ -180,20 +180,20 @@ class Simulation:
             "smoothing_bottom", "smoothing_top", "weight_apriori"
         ]
         
-        retrieval_updates = {}
+        # Ensure the dictionary exists before updating
+        if "retrieval_parameters" not in nml_updates:
+            nml_updates["retrieval_parameters"] = {}
+            
         for key in retrieval_keys:
             if key in self.params:
                 # Cast numeric types properly
                 val = self.params[key]
                 if isinstance(val, bool):
-                    retrieval_updates[key] = val
+                    nml_updates["retrieval_parameters"][key] = val
                 elif isinstance(val, int) or str(val).isdigit():
-                    retrieval_updates[key] = int(val)
+                    nml_updates["retrieval_parameters"][key] = int(val)
                 else:
-                    retrieval_updates[key] = float(val)
-
-        if retrieval_updates:
-            nml_updates["retrieval_parameters"] = retrieval_updates
+                    nml_updates["retrieval_parameters"][key] = float(val)
 
         return nml_updates
 
