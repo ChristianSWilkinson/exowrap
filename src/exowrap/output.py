@@ -109,19 +109,20 @@ class ExoremOut:
         """float: The cloud coverage fraction (0.0 to 1.0)."""
         return float(self._get("/model_parameters/clouds/fraction"))
 
-    def particle_density(
-        self, specie: Literal["cloud1", "cloud2", "cloud3", "cloud4", "cloud5", "cloud6", "cloud7"] = "cloud1"
-    ) -> float:
+    def particle_density(self, specie: str = "Fe") -> float:
         """
         Retrieves the cloud particle density for a specific cloud species.
 
         Args:
-            specie (str): The cloud species identifier. Defaults to "cloud1".
+            specie (str): The chemical identifier (e.g., 'Fe', 'Mg2SiO4', 'H2O').
 
         Returns:
             float: The particle density in kg/m^3.
         """
-        return float(self._get(f"/model_parameters/clouds/particle_density/{specie}"))
+        try:
+            return float(self._get(f"/model_parameters/clouds/particle_density/{specie}"))
+        except ValueError:
+            return 0.0  # Safe fallback if the cloud doesn't exist in this specific run
 
     @property
     def fsed(self) -> Dict[str, float]:

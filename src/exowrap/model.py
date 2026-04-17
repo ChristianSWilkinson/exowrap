@@ -117,18 +117,49 @@ class Simulation:
             }
         else :
             t_irr = 0.0
-
-        atm_updates = {}
         
-        # --- NEW: Explicitly declare 5 clouds to Fortran ---
-        atm_updates["n_clouds"] = 7
+        atm_updates = {}
         
         if "Met" in self.params:
             atm_updates["metallicity"] = 10 ** float(self.params["Met"])
         if "kzz" in self.params:
             atm_updates["eddy_diffusion_coefficient"] = 10 ** float(self.params["kzz"])
 
+        # --- NEW: DYNAMIC CLOUD INJECTION ---
+        # Master dictionary of Fortran cloud properties
+        CLOUD_PROPERTIES = {
+            'Fe':      7874.0,
+            'Mg2SiO4': 3670.0,
+            'KCl':     2000.0,
+            'Na2S':    1860.0,
+            'H2O':     917.0,
+            'NH3':     860.0,
+            'NH4SH':   1170.0
+        }
+        
+        # Look for user-requested clouds; default to all 7 if not specified
+        requested_clouds = self.params.get("active_clouds", list(CLOUD_PROPERTIES.keys()))
+        n_clouds = len(requested_clouds)
+        
+        atm_updates["n_clouds"] = n_clouds
         nml_updates["atmosphere_parameters"] = atm_updates
+
+        # Only build the clouds_parameters block if clouds are actually requested
+        if n_clouds > 0:
+            densities = [CLOUD_PROPERTIES[c] for c in requested_clouds]
+            f_sed = float(self.params.get("f_sed", 6.0))
+            cloud_frac = float(self.params.get("cloud_fraction", 1.0))
+            
+            nml_updates["clouds_parameters"] = {
+                "cloud_fraction": cloud_frac,
+                "cloud_names": requested_clouds,
+                "cloud_particle_density": densities,
+                "sedimentation_parameter": [f_sed] * n_clouds,
+                "cloud_particle_radius": [10e-6] * n_clouds,
+                "supersaturation_parameter": [0.003] * n_clouds,
+                "sticking_efficiency": [1.0] * n_clouds,
+                "reference_wavenumber": [10000.0] * n_clouds
+            }
 
         # --- NEW: Cloud species array expansion ---
         # Fetch f_sed from params, fallback to 6.0 if not provided
