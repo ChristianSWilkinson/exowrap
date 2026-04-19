@@ -289,18 +289,22 @@ class Simulation:
             # Disable strict HDF5 file locking so multiple cores can read K-tables safely
             run_env = os.environ.copy()
             run_env["HDF5_USE_FILE_LOCKING"] = "FALSE"
+
+            # --- DYNAMIC TERMINAL OUTPUT CONTROL ---
+            # Check if the coupler told us to show the live Fortran output
+            show_fortran = self.params.get("show_fortran_output", False)
             
             result = subprocess.run(
                 cmd,
                 cwd=bin_dir,
-                capture_output=True,
+                capture_output=not show_fortran, # Will be False if we want to see it!
                 text=True,
                 env=run_env
             )
 
             # Save the raw terminal output directly to the Python object
-            self.last_stdout = result.stdout
-            self.last_stderr = result.stderr
+            self.last_stdout = result.stdout if result.stdout else "[Live output was printed directly to terminal]"
+            self.last_stderr = result.stderr if result.stderr else "[Live output was printed directly to terminal]"
 
             # Check 1: Did Fortran actually crash? (Segmentation fault, etc.)
             if result.returncode != 0:
