@@ -147,14 +147,25 @@ class Simulation:
         # Only build the clouds_parameters block if clouds are actually requested
         if n_clouds > 0:
             densities = [CLOUD_PROPERTIES[c] for c in requested_clouds]
-            f_sed = float(self.params.get("f_sed", 6.0))
             cloud_frac = float(self.params.get("cloud_fraction", 1.0))
+            
+            # --- NEW: Handle dictionary mapping for f_sed ---
+            f_sed_input = self.params.get("f_sed", 6.0)
+            f_sed_list = []
+            
+            for c in requested_clouds:
+                if isinstance(f_sed_input, dict):
+                    # Extract specific f_sed, defaulting to 6.0 if not specified for this cloud
+                    f_sed_list.append(float(f_sed_input.get(c, 6.0)))
+                else:
+                    # Backwards compatibility: apply a single float to all clouds
+                    f_sed_list.append(float(f_sed_input))
             
             nml_updates["clouds_parameters"] = {
                 "cloud_fraction": cloud_frac,
                 "cloud_names": requested_clouds,
                 "cloud_particle_density": densities,
-                "sedimentation_parameter": [f_sed] * n_clouds,
+                "sedimentation_parameter": f_sed_list,
                 "cloud_particle_radius": [10e-6] * n_clouds,
                 "supersaturation_parameter": [0.003] * n_clouds,
                 "sticking_efficiency": [1.0] * n_clouds,
